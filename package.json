@@ -1,0 +1,13 @@
+{
+  "name": "punchcard-app",
+  "version": "1.0.0",
+  "description": "每日打卡应用",
+  "scripts": {
+    "build": "echo 'Static app, no build needed'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4"
+  }
+}

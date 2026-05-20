@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>打卡</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f5f5f5;--bg-tertiary:#ebebeb;
+  --text-primary:#1a1a1a;--text-secondary:#666;--text-tertiary:#999;
+  --border:#e0e0e0;--border-mid:#ccc;
+  --green:#1D9E75;--green-light:#E1F5EE;--green-mid:#9FE1CB;--green-dark:#085041;--green-deep:#0F6E56;
+  --red-bg:#FCEBEB;--red-border:#F09595;--red-text:#A32D2D;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg-primary:#1c1c1e;--bg-secondary:#2c2c2e;--bg-tertiary:#3a3a3c;
+    --text-primary:#f2f2f7;--text-secondary:#aeaeb2;--text-tertiary:#636366;
+    --border:#3a3a3c;--border-mid:#48484a;
+    --green-light:#0a2e22;--green-mid:#0f4a35;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:var(--bg-secondary);max-width:430px;margin:0 auto;position:relative;min-height:100vh;display:flex;flex-direction:column}
+.app{display:flex;flex-direction:column;flex:1}
+.screen{display:none;flex:1;flex-direction:column;padding-bottom:80px;overflow-y:auto}
+.screen.active{display:flex}
+
+.hero{background:var(--bg-primary);padding:20px 20px 16px;border-bottom:0.5px solid var(--border)}
+.hero h1{font-size:22px;font-weight:600;color:var(--text-primary);margin-bottom:6px}
+.date-chip{font-size:11px;color:var(--text-secondary);background:var(--bg-secondary);padding:4px 10px;border-radius:20px;border:0.5px solid var(--border);display:inline-block}
+
+.punch-ring-wrap{background:var(--bg-primary);padding:24px 20px 18px;display:flex;flex-direction:column;align-items:center;border-bottom:0.5px solid var(--border)}
+.ring-outer{width:136px;height:136px;border-radius:50%;border:2.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s,transform .1s;-webkit-tap-highlight-color:transparent}
+.ring-outer.punched{border-color:var(--green)}
+.ring-outer:active{transform:scale(.94)}
+.ring-inner{width:108px;height:108px;border-radius:50%;background:var(--bg-secondary);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;transition:background .2s}
+.ring-outer.punched .ring-inner{background:var(--green-light)}
+.ring-icon{font-size:36px;color:var(--text-tertiary);transition:color .2s;line-height:1}
+.ring-outer.punched .ring-icon{color:var(--green-deep)}
+.ring-label{font-size:13px;color:var(--text-secondary);font-weight:500;transition:color .2s}
+.ring-outer.punched .ring-label{color:var(--green-deep)}
+.punch-meta{margin-top:12px;text-align:center;min-height:22px}
+.time-badge{font-size:12px;color:var(--green-dark);background:var(--green-mid);padding:3px 14px;border-radius:20px;display:inline-block}
+.hint{font-size:12px;color:var(--text-tertiary)}
+.cancel-row{margin-top:10px}
+.cancel-btn{font-size:12px;color:var(--text-tertiary);background:none;border:0.5px solid var(--border);border-radius:20px;padding:6px 16px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+
+.divider{height:8px;background:var(--bg-secondary)}
+.month-nav-row{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px;background:var(--bg-primary)}
+.mnav-btn{background:none;border:0.5px solid var(--border);border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary);font-size:18px;-webkit-tap-highlight-color:transparent}
+.month-title{font-size:14px;font-weight:600;color:var(--text-primary)}
+.dow-row{display:grid;grid-template-columns:repeat(7,1fr);padding:6px 10px 0;background:var(--bg-primary)}
+.dow-row span{text-align:center;font-size:10px;color:var(--text-tertiary);padding-bottom:4px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:4px 10px 16px;background:var(--bg-primary)}
+.dc{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:0.5px solid transparent;-webkit-tap-highlight-color:transparent}
+.dc.empty{background:none}
+.dc.past{background:var(--bg-secondary);border-color:var(--border);cursor:pointer}
+.dc.today{background:var(--bg-secondary);border:1.5px solid var(--green);cursor:pointer}
+.dc.future{background:none;opacity:.35}
+.dc.ok{background:var(--green-light);border-color:var(--green-mid)}
+.dc.today.ok{border-color:var(--green-deep);border-width:1.5px}
+.dc:active{transform:scale(.9)}
+.dc .dn{font-size:12px;font-weight:500;color:var(--text-secondary)}
+.dc.future .dn{color:var(--text-tertiary)}
+.dc.ok .dn{color:var(--green-dark)}
+.dc.today .dn{color:var(--green)}
+.dc.today.ok .dn{color:var(--green-dark)}
+.dc .dot{width:4px;height:4px;border-radius:50%;background:var(--green-mid);margin-top:2px}
+
+.stat-wrap{padding:14px}
+.sec-label{font-size:10px;color:var(--text-tertiary);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase}
+.stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.scard{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:14px;padding:14px}
+.scard .num{font-size:32px;font-weight:600;color:var(--text-primary)}
+.scard .lab{font-size:11px;color:var(--text-secondary);margin-top:2px}
+.streak-banner{background:var(--green-light);border:0.5px solid var(--green-mid);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.sb-icon{width:40px;height:40px;border-radius:10px;background:var(--green-mid);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px}
+.sb-num{font-size:22px;font-weight:600;color:var(--green-dark)}
+.sb-lab{font-size:11px;color:var(--green-deep);margin-top:2px}
+.hm-wrap{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px}
+.hm-label{font-size:10px;color:var(--text-tertiary);letter-spacing:.08em;margin-bottom:10px}
+.hm-grid{display:flex;flex-wrap:wrap;gap:3px}
+.hm-cell{width:14px;height:14px;border-radius:3px;background:var(--bg-secondary)}
+.hm-1{background:var(--green-mid)}
+.hist-wrap{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px}
+.hist-item{display:flex;align-items:center;padding:12px 14px;border-bottom:0.5px solid var(--border);gap:10px}
+.hist-item:last-child{border-bottom:none}
+.hi-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.hi-date{font-size:13px;color:var(--text-primary);flex:1}
+.hi-time{font-size:11px;color:var(--text-tertiary)}
+.hi-note{font-size:11px;color:var(--text-secondary);max-width:110px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.empty-hist{text-align:center;padding:40px 20px;color:var(--text-tertiary);font-size:13px}
+
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--bg-primary);border-top:0.5px solid var(--border);display:flex;z-index:50;padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;padding:10px 0 12px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:inherit;color:var(--text-tertiary);font-size:10px;-webkit-tap-highlight-color:transparent}
+.nav-btn.active{color:var(--green)}
+.nav-btn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s;padding:0 24px}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--bg-primary);border-radius:20px;padding:22px;width:100%;max-width:340px;transform:scale(.9) translateY(16px);transition:transform .25s cubic-bezier(.34,1.4,.64,1)}
+.modal-bg.open .modal-box{transform:scale(1) translateY(0)}
+.modal-title{font-size:16px;font-weight:600;color:var(--text-primary);margin-bottom:3px}
+.modal-sub{font-size:12px;color:var(--text-secondary);margin-bottom:14px}
+.modal-note{width:100%;border:0.5px solid var(--border);border-radius:12px;padding:12px;font-size:14px;font-family:inherit;color:var(--text-primary);background:var(--bg-secondary);resize:none;height:84px;outline:none}
+.modal-note:focus{border-color:var(--green)}
+.modal-btns{display:flex;gap:8px;margin-top:12px}
+.mb-primary{flex:1;padding:12px;border-radius:12px;background:var(--green);border:none;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.mb-ghost{padding:12px 16px;border-radius:12px;background:var(--bg-secondary);border:0.5px solid var(--border);color:var(--text-secondary);font-size:14px;cursor:pointer;font-family:inherit}
+.modal-sep{height:0.5px;background:var(--border);margin:14px 0 10px}
+.modal-cancel-label{font-size:11px;color:var(--text-tertiary);margin-bottom:6px}
+.mb-danger{width:100%;padding:11px;border-radius:12px;background:var(--red-bg);border:0.5px solid var(--red-border);color:var(--red-text);font-size:13px;cursor:pointer;font-family:inherit}
+
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-70px);background:var(--green-dark);color:var(--green-light);padding:10px 22px;border-radius:99px;font-size:13px;font-weight:500;z-index:999;transition:transform .28s cubic-bezier(.34,1.5,.64,1);pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="app">
+<div id="s-home" class="screen active">
+  <div class="hero">
+    <h1 id="heroTitle">今天，打卡了吗？</h1>
+    <div class="date-chip" id="heroDate"></div>
+  </div>
+  <div class="punch-ring-wrap">
+    <div class="ring-outer" id="ringOuter" onclick="handleTodayClick()">
+      <div class="ring-inner">
+        <div class="ring-icon" id="ringIcon">○</div>
+        <span class="ring-label" id="ringLabel">点击打卡</span>
+      </div>
+    </div>
+    <div class="punch-meta" id="punchMeta"><span class="hint">点击圆圈完成今日打卡</span></div>
+    <div class="cancel-row" id="cancelRow" style="display:none">
+      <button class="cancel-btn" onclick="openModal(today,true)">编辑备注 / 取消打卡</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="month-nav-row">
+    <button class="mnav-btn" onclick="changeMonth(-1)">‹</button>
+    <span class="month-title" id="monthLabel"></span>
+    <button class="mnav-btn" onclick="changeMonth(1)">›</button>
+  </div>
+  <div class="dow-row"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+  <div class="cal-grid" id="calGrid"></div>
+</div>
+
+<div id="s-stat" class="screen">
+  <div class="hero" style="padding-bottom:16px"><h1>统计</h1></div>
+  <div class="stat-wrap">
+    <div class="sec-label">总览</div>
+    <div class="stat-grid">
+      <div class="scard"><div class="num" id="totalCount">0</div><div class="lab">累计打卡天数</div></div>
+      <div class="scard"><div class="num" id="monthCount">0</div><div class="lab">本月打卡天数</div></div>
+    </div>
+    <div class="streak-banner">
+      <div class="sb-icon">🔥</div>
+      <div><div class="sb-num" id="streakNum">0 天</div><div class="sb-lab">当前连续打卡</div></div>
+    </div>
+    <div class="hm-wrap">
+      <div class="hm-label">近 90 天热力图</div>
+      <div class="hm-grid" id="hmGrid"></div>
+    </div>
+    <div class="sec-label" style="margin-top:4px">历史记录</div>
+    <div class="hist-wrap" id="histWrap"></div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="switchTab('home')" id="nb-home">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+    打卡
+  </button>
+  <button class="nav-btn" onclick="switchTab('stat')" id="nb-stat">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    统计
+  </button>
+</nav>
+</div>
+
+<div class="modal-bg" id="modalBg" onclick="handleBgClick(event)">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-sub" id="modalSub"></div>
+    <textarea class="modal-note" id="modalNote" placeholder="记录一下今天…（可留空）"></textarea>
+    <div class="modal-btns">
+      <button class="mb-ghost" onclick="closeModal()">跳过</button>
+      <button class="mb-primary" id="modalSaveBtn" onclick="modalSave()">保存打卡</button>
+    </div>
+    <div id="cancelSection" style="display:none">
+      <div class="modal-sep"></div>
+      <div class="modal-cancel-label">危险操作</div>
+      <button class="mb-danger" onclick="modalCancelPunch()">取消这天的打卡记录</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY='punchv3';
+let db=JSON.parse(localStorage.getItem(KEY)||'{}');
+const now=new Date();
+let vy=now.getFullYear(),vm=now.getMonth();
+let modalKey='';
+function dk(y,m,d){return y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0')}
+const today=dk(now.getFullYear(),now.getMonth(),now.getDate());
+function save(){localStorage.setItem(KEY,JSON.stringify(db))}
+function isPunched(k){return!!(db[k]&&db[k].punched)}
+function openModal(key,already){
+  modalKey=key;
+  const isToday=key===today,isPast=key<today;
+  document.getElementById('modalTitle').textContent=already?(isToday?'今天':''+key)+' · 已打卡':(isPast?'补打卡 · '+key:'今天 · 打卡');
+  document.getElementById('modalSub').textContent=already?'可修改备注，或取消打卡':'备注可留空，直接保存即可';
+  document.getElementById('modalNote').value=already&&db[key]?db[key].note||'':'';
+  document.getElementById('modalSaveBtn').textContent=already?'保存备注':'保存打卡';
+  document.getElementById('cancelSection').style.display=already?'block':'none';
+  document.getElementById('modalBg').classList.add('open');
+  setTimeout(()=>document.getElementById('modalNote').focus(),260);
+}
+function closeModal(){document.getElementById('modalBg').classList.remove('open')}
+function handleBgClick(e){if(e.target===document.getElementById('modalBg'))closeModal()}
+function modalSave(){
+  const note=document.getElementById('modalNote').value.trim();
+  const t=new Date(),hm=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+  const existed=isPunched(modalKey);
+  db[modalKey]={punched:true,time:db[modalKey]?.time||hm,note};
+  save();closeModal();renderHome();renderStat();
+  showToast(existed?'备注已更新':'打卡成功 ✓');
+}
+function modalCancelPunch(){delete db[modalKey];save();closeModal();renderHome();renderStat();showToast('已取消打卡')}
+function handleTodayClick(){openModal(today,isPunched(today))}
+function renderHome(){
+  const days=['日','一','二','三','四','五','六'];
+  document.getElementById('heroDate').textContent=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日 星期'+days[now.getDay()];
+  const p=isPunched(today);
+  document.getElementById('ringOuter').className='ring-outer'+(p?' punched':'');
+  document.getElementById('ringIcon').textContent=p?'✓':'○';
+  document.getElementById('ringLabel').textContent=p?'已打卡':'点击打卡';
+  document.getElementById('heroTitle').textContent=p?'今天，已打卡 ✓':'今天，打卡了吗？';
+  document.getElementById('punchMeta').innerHTML=p?'<span class="time-badge">'+db[today].time+'</span>':'<span class="hint">点击圆圈完成今日打卡</span>';
+  document.getElementById('cancelRow').style.display=p?'block':'none';
+  renderCal();
+}
+function renderCal(){
+  const y=vy,m=vm;
+  document.getElementById('monthLabel').textContent=y+'年'+(m+1)+'月';
+  const first=new Date(y,m,1).getDay(),total=new Date(y,m+1,0).getDate();
+  const grid=document.getElementById('calGrid');grid.innerHTML='';
+  for(let i=0;i<first;i++){const c=document.createElement('div');c.className='dc empty';grid.appendChild(c)}
+  for(let d=1;d<=total;d++){
+    const k=dk(y,m,d),isTod=k===today,isFut=new Date(y,m,d)>now&&!isTod;
+    const c=document.createElement('div');
+    let cls='dc'+(isFut?' future':isTod?' today':' past')+(isPunched(k)?' ok':'');
+    c.className=cls;
+    const dn=document.createElement('div');dn.className='dn';dn.textContent=d;c.appendChild(dn);
+    if(isPunched(k)&&db[k].note){const dot=document.createElement('div');dot.className='dot';c.appendChild(dot)}
+    if(!isFut)c.onclick=()=>isTod?handleTodayClick():openModal(k,isPunched(k));
+    grid.appendChild(c);
+  }
+}
+function changeMonth(d){vm+=d;if(vm>11){vm=0;vy++;}if(vm<0){vm=11;vy--;}renderCal()}
+function renderStat(){
+  const keys=Object.keys(db).filter(k=>db[k].punched).sort();
+  document.getElementById('totalCount').textContent=keys.length;
+  const mp=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  document.getElementById('monthCount').textContent=keys.filter(k=>k.startsWith(mp)).length;
+  let streak=0,cur=new Date(now);
+  while(true){const k=dk(cur.getFullYear(),cur.getMonth(),cur.getDate());if(isPunched(k)){streak++;cur.setDate(cur.getDate()-1)}else break}
+  document.getElementById('streakNum').textContent=streak+' 天';
+  const hm=document.getElementById('hmGrid');hm.innerHTML='';
+  for(let i=89;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);const k=dk(d.getFullYear(),d.getMonth(),d.getDate());const cell=document.createElement('div');cell.className='hm-cell'+(isPunched(k)?' hm-1':'');hm.appendChild(cell)}
+  const hw=document.getElementById('histWrap');
+  if(!keys.length){hw.innerHTML='<div class="empty-hist">还没有打卡记录</div>';return}
+  hw.innerHTML=keys.slice().reverse().slice(0,30).map(k=>'<div class="hist-item"><div class="hi-dot"></div><span class="hi-date">'+k+' <span class="hi-time">'+(db[k].time||'')+'</span></span>'+(db[k].note?'<span class="hi-note">'+db[k].note+'</span>':'')+'</div>').join('');
+}
+function switchTab(t){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('s-'+t).classList.add('active');
+  document.getElementById('nb-'+t).classList.add('active');
+  if(t==='stat')renderStat();
+}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
+renderHome();renderStat();
+</script>
+</body>
+</html>
