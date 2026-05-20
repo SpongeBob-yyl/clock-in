@@ -1,0 +1,11 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "spongebob-yyl.github",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "spongebob-yyl.github",
+  "start_url": "/",
+  "theme_color": "#ffffff"
+}
